@@ -6,7 +6,56 @@ from openai import OpenAI
 import streamlit as st
 
 BANKING_PRODUCTS = [
-    # ... (keep the same product definitions as original)
+    {
+        "name": "basic_checking_account",
+        "description": "A no-frills checking account with low fees.",
+        "category": "account",
+    },
+    {
+        "name": "premium_checking_account",
+        "description": "A high-tier checking account with benefits like cashback and no ATM fees.",
+        "category": "account",
+    },
+    {
+        "name": "savings_account",
+        "description": "A standard savings account with competitive interest rates.",
+        "category": "account",
+    },
+    {
+        "name": "high_yield_savings_account",
+        "description": "A savings account with higher interest rates for larger balances.",
+        "category": "account",
+    },
+    {
+        "name": "credit_card",
+        "description": "A standard credit card with rewards on everyday purchases.",
+        "category": "credit",
+    },
+    {
+        "name": "platinum_credit_card",
+        "description": "A premium credit card with travel rewards and concierge services.",
+        "category": "credit",
+    },
+    {
+        "name": "personal_loan",
+        "description": "A loan for personal expenses with flexible repayment terms.",
+        "category": "loan",
+    },
+    {
+        "name": "low_interest_loan",
+        "description": "A loan with lower interest rates for qualified customers.",
+        "category": "loan",
+    },
+    {
+        "name": "investment_account",
+        "description": "An account for investing in stocks, bonds, and mutual funds.",
+        "category": "investment",
+    },
+    {
+        "name": "retirement_account",
+        "description": "A tax-advantaged account for retirement savings.",
+        "category": "investment",
+    },
 ]
 
 
