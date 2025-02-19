@@ -72,6 +72,7 @@ class BankingRecommendationSystem:
             self.transaction_data["timestamp"] = pd.to_datetime(
                 self.transaction_data["timestamp"]
             )
+            self._preprocess_data()
         else:
             st.write("No data uploaded. Please upload a CSV file.")
 
