@@ -106,6 +106,13 @@ class BankingUI:
                 st.write(
                     f"Debug: Recommendations for customer {selected_id}: {recommendations}"
                 )
+                # ensure that we get recommendations
+                if not recommendations:
+                    st.warning(
+                        "No specific recommendations found. Showing popular products instead."
+                    )
+                    recommendations = self.recommender._cold_start_recommendations(3)
+
                 message = self.recommender.generate_message(
                     selected_customer, recommendations
                 )
