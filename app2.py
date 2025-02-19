@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import time
 import os
-from bank_recommder import BankingRecommendationSystem
+from banking_recommender import BankingRecommendationSystem
 
 
 class BankingUI:
