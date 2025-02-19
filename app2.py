@@ -103,9 +103,7 @@ class BankingUI:
             with st.container(border=True):
                 st.subheader("🎯 Personalized Recommendations")
                 recommendations = self.recommender.get_recommendations(selected_id)
-                st.write(
-                    f"Debug: Recommendations for customer {selected_id}: {recommendations}"
-                )
+
                 # ensure that we get recommendations
                 if not recommendations:
                     st.warning(
@@ -144,9 +142,7 @@ class BankingUI:
                             self.recommender.transaction_data["customer_ID"] == cid
                         ]
                         recommendations = self.recommender.get_recommendations(cid)
-                        st.write(
-                            f"Debug: Recommendations for customer {cid}: {recommendations}"
-                        )
+
                         message = self.recommender.generate_message(
                             customer_data, recommendations
                         )
