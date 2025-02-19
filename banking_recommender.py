@@ -86,35 +86,65 @@ class BankingRecommendationSystem:
             fill_value=0,
         )
 
+    class BankingRecommendationSystem:
+    # ... (keep other methods the same)
+
     def get_recommendations(self, customer_id, top_n=3):
+        """Get recommendations for a customer with fallback logic"""
         if customer_id in self.customer_product_matrix.index:
-            return self._collaborative_filtering(customer_id, top_n)
-        return self._cold_start_recommendations(top_n)
+            recommendations = self._collaborative_filtering(customer_id, top_n)
+            # If collaborative filtering returns too few results, supplement with popular products
+            if len(recommendations) < top_n:
+                popular = self._cold_start_recommendations(top_n)
+                recommendations.extend(p for p in popular if p not in recommendations)
+                recommendations = recommendations[:top_n]
+        else:
+            recommendations = self._cold_start_recommendations(top_n)
+        return recommendations
 
     def _collaborative_filtering(self, customer_id, top_n):
-        similarity_matrix = cosine_similarity(self.customer_product_matrix)
-        similarity_df = pd.DataFrame(
-            similarity_matrix,
-            index=self.customer_product_matrix.index,
-            columns=self.customer_product_matrix.index,
-        )
-        similar_customers = (
-            similarity_df[customer_id].sort_values(ascending=False).index[1:]
-        )
-        recommended_products = (
-            self.customer_product_matrix.loc[similar_customers]
-            .sum()
-            .sort_values(ascending=False)
-            .index
-        )
-        used_products = self.customer_product_matrix.loc[customer_id][
-            self.customer_product_matrix.loc[customer_id] > 0
-        ].index
-        return [p for p in recommended_products if p not in used_products][:top_n]
+        """Improved collaborative filtering with fallback"""
+        try:
+            # Get products used by similar customers
+            similarity_matrix = cosine_similarity(self.customer_product_matrix)
+            similarity_df = pd.DataFrame(
+                similarity_matrix,
+                index=self.customer_product_matrix.index,
+                columns=self.customer_product_matrix.index,
+            )
+            
+            # Find similar customers (excluding self)
+            similar_customers = similarity_df[customer_id].sort_values(ascending=False).index[1:6]  # Top 5 similar
+            
+            # Get products used by similar customers
+            similar_products = self.customer_product_matrix.loc[similar_customers].sum().sort_values(ascending=False)
+            
+            # Filter out products already used by the customer
+            used_products = set(self.customer_product_matrix.loc[customer_id][
+                self.customer_product_matrix.loc[customer_id] > 0
+            ].index)
+            
+            # Get top N recommendations excluding used products
+            recommendations = [
+                product for product in similar_products.index
+                if product not in used_products
+            ][:top_n]
+            
+            return recommendations
+            
+        except Exception as e:
+            print(f"Error in collaborative filtering: {str(e)}")
+            return self._cold_start_recommendations(top_n)
 
     def _cold_start_recommendations(self, top_n):
-        return self.transaction_data["product_used"].value_counts().index[:top_n]
-
+        """Get popular products with fallback to all products"""
+        try:
+            popular_products = self.transaction_data["product_used"].value_counts().index
+            return list(popular_products[:top_n])
+        except:
+            # Fallback to all products if no transaction data
+            return [product["name"] for product in BANKING_PRODUCTS][:top_n]
+        
     def set_openai_key(self, api_key):
         if api_key:
             self.openai_client = OpenAI(api_key=api_key)
