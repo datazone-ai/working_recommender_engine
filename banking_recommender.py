@@ -1,6 +1,6 @@
 import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
+
+# from datetime import datetime, timedelta
 from sklearn.metrics.pairwise import cosine_similarity
 from openai import OpenAI
 import streamlit as st
