@@ -86,9 +86,6 @@ class BankingRecommendationSystem:
             fill_value=0,
         )
 
-    class BankingRecommendationSystem:
-    # ... (keep other methods the same)
-
     def get_recommendations(self, customer_id, top_n=3):
         """Get recommendations for a customer with fallback logic"""
         if customer_id in self.customer_product_matrix.index:
@@ -112,26 +109,35 @@ class BankingRecommendationSystem:
                 index=self.customer_product_matrix.index,
                 columns=self.customer_product_matrix.index,
             )
-            
+
             # Find similar customers (excluding self)
-            similar_customers = similarity_df[customer_id].sort_values(ascending=False).index[1:6]  # Top 5 similar
-            
+            similar_customers = (
+                similarity_df[customer_id].sort_values(ascending=False).index[1:6]
+            )  # Top 5 similar
+
             # Get products used by similar customers
-            similar_products = self.customer_product_matrix.loc[similar_customers].sum().sort_values(ascending=False)
-            
+            similar_products = (
+                self.customer_product_matrix.loc[similar_customers]
+                .sum()
+                .sort_values(ascending=False)
+            )
+
             # Filter out products already used by the customer
-            used_products = set(self.customer_product_matrix.loc[customer_id][
-                self.customer_product_matrix.loc[customer_id] > 0
-            ].index)
-            
+            used_products = set(
+                self.customer_product_matrix.loc[customer_id][
+                    self.customer_product_matrix.loc[customer_id] > 0
+                ].index
+            )
+
             # Get top N recommendations excluding used products
             recommendations = [
-                product for product in similar_products.index
+                product
+                for product in similar_products.index
                 if product not in used_products
             ][:top_n]
-            
+
             return recommendations
-            
+
         except Exception as e:
             print(f"Error in collaborative filtering: {str(e)}")
             return self._cold_start_recommendations(top_n)
@@ -139,12 +145,14 @@ class BankingRecommendationSystem:
     def _cold_start_recommendations(self, top_n):
         """Get popular products with fallback to all products"""
         try:
-            popular_products = self.transaction_data["product_used"].value_counts().index
+            popular_products = (
+                self.transaction_data["product_used"].value_counts().index
+            )
             return list(popular_products[:top_n])
         except:
             # Fallback to all products if no transaction data
             return [product["name"] for product in BANKING_PRODUCTS][:top_n]
-        
+
     def set_openai_key(self, api_key):
         if api_key:
             self.openai_client = OpenAI(api_key=api_key)
