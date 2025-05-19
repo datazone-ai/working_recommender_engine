@@ -149,7 +149,7 @@ class BankingRecommendationSystem:
                 self.transaction_data["product_used"].value_counts().index
             )
             return list(popular_products[:top_n])
-        except:
+        except Exception:
             # Fallback to all products if no transaction data
             return [product["name"] for product in BANKING_PRODUCTS][:top_n]
 
