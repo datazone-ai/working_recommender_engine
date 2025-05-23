@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 import time
-from bank_recommder import BankingRecommendationSystem
+
+# import os
+from banking_recommender import BankingRecommendationSystem
 
 
 class BankingUI:
@@ -18,6 +20,7 @@ class BankingUI:
         )
 
     def _customer_profile_card(self, customer_data):
+        """Display customer profile with formatted datetime"""
         with st.container(border=True):
             st.subheader("👤 Customer Profile")
             cols = st.columns(3)
@@ -31,8 +34,12 @@ class BankingUI:
             cols[2].metric("Favorite Product", customer_data["product_used"].mode()[0])
 
             st.write("📝 **Recent Transactions**")
+            formatted_data = customer_data.copy()
+            formatted_data["timestamp"] = formatted_data["timestamp"].dt.strftime(
+                "%Y-%m-%d %H:%M"
+            )
             st.dataframe(
-                customer_data[
+                formatted_data[
                     [
                         "timestamp",
                         "transaction_type",
@@ -45,11 +52,15 @@ class BankingUI:
             )
 
     def _recommendations_table(self, recommendations_df):
+        """Display recommendations with proper product formatting"""
         with st.container(border=True):
             st.subheader("📊 Batch Recommendations")
             st.dataframe(
                 recommendations_df,
                 column_config={
+                    "Recommended Products": st.column_config.TextColumn(
+                        "Recommendations", width="medium"
+                    ),
                     "Personalized Message": st.column_config.TextColumn(
                         "Message", width="large"
                     ),
@@ -66,14 +77,6 @@ class BankingUI:
             )
             self.recommender.load_data(uploaded_file)
 
-            api_key = st.text_input("OpenAI API Key", type="password")
-            self.recommender.set_openai_key(api_key)
-
-            customer_id = st.selectbox(
-                "Select Customer",
-                self.recommender.transaction_data["customer_ID"].unique(),
-            )
-
             num_customers = st.slider(
                 "Number of Customers to Process",
                 1,
@@ -86,65 +89,94 @@ class BankingUI:
         st.caption(
             "AI-powered product recommendations for personalized banking experiences"
         )
+        if self.recommender.transaction_data is not None:
+            # Display recommendations for selected customer
+            customer_ids = self.recommender.transaction_data["customer_ID"].unique()
+            selected_id = st.selectbox("Select Customer", customer_ids)
+            selected_customer = self.recommender.transaction_data[
+                self.recommender.transaction_data["customer_ID"] == selected_id
+            ]
 
-        selected_customer = self.recommender.transaction_data[
-            self.recommender.transaction_data["customer_ID"] == customer_id
-        ]
-        self._customer_profile_card(selected_customer)
+            self._customer_profile_card(selected_customer)
 
-        with st.container(border=True):
-            st.subheader("🎯 Personalized Recommendations")
-            recommendations = self.recommender.get_recommendations(customer_id)
-            message = self.recommender.generate_message(
-                selected_customer, recommendations
-            )
+            # Display recommendations
+            with st.container(border=True):
+                st.subheader("🎯 Personalized Recommendations")
+                recommendations = self.recommender.get_recommendations(selected_id)
 
-            cols = st.columns([1, 2])
-            with cols[0]:
-                st.write("**Recommended Products**")
-                for product in recommendations:
-                    st.success(f"🌟 {product}")
-            with cols[1]:
-                st.write("**AI-Powered Message**")
-                st.write(message)
-
-        if st.button("🚀 Generate Batch Recommendations", use_container_width=True):
-            with st.spinner("Generating recommendations..."):
-                start_time = time.time()
-                results = []
-                customer_ids = self.recommender.transaction_data[
-                    "customer_ID"
-                ].unique()[:num_customers]
-
-                for cid in customer_ids:
-                    customer_data = self.recommender.transaction_data[
-                        self.recommender.transaction_data["customer_ID"] == cid
-                    ]
-                    recommendations = self.recommender.get_recommendations(cid)
-                    message = self.recommender.generate_message(
-                        customer_data, recommendations
+                # ensure that we get recommendations
+                if not recommendations:
+                    st.warning(
+                        "No specific recommendations found. Showing popular products instead."
                     )
+                    recommendations = self.recommender._cold_start_recommendations(3)
 
-                    results.append(
-                        {
-                            "Customer ID": cid,
-                            "Recommended Products": ", ".join(recommendations),
-                            "Personalized Message": message,
-                            "Tenure": customer_data["customer_tenure"].mean(),
-                            "Transaction Freq": customer_data[
-                                "transaction_frequency"
-                            ].mean(),
-                        }
-                    )
-
-                self._recommendations_table(pd.DataFrame(results))
-                st.toast(
-                    f"Generated {len(results)} recommendations in {time.time()-start_time:.2f}s",
-                    icon="✅",
+                message = self.recommender.generate_message(
+                    selected_customer, recommendations
                 )
+
+                cols = st.columns([1, 2])
+                with cols[0]:
+                    st.write("**Recommended Products**")
+                    if recommendations:
+                        for product in recommendations:
+                            st.success(f"🌟 {product.replace('_', ' ').title()}")
+                    else:
+                        st.warning("No recommendations available")
+
+                with cols[1]:
+                    st.write("**AI-Powered Message**")
+                    st.write(message)
+
+            # Batch processing
+            if st.button("🚀 Generate Batch Recommendations", use_container_width=True):
+                with st.spinner("Generating recommendations..."):
+                    start_time = time.time()
+                    results = []
+                    customer_ids = self.recommender.transaction_data[
+                        "customer_ID"
+                    ].unique()[:num_customers]
+
+                    for cid in customer_ids:
+                        customer_data = self.recommender.transaction_data[
+                            self.recommender.transaction_data["customer_ID"] == cid
+                        ]
+                        recommendations = self.recommender.get_recommendations(cid)
+
+                        message = self.recommender.generate_message(
+                            customer_data, recommendations
+                        )
+
+                        results.append(
+                            {
+                                "Customer ID": cid,
+                                "Recommended Products": "\n".join(
+                                    [
+                                        p.replace("_", " ").title()
+                                        for p in recommendations
+                                    ]
+                                ),
+                                "Personalized Message": message,
+                                "Tenure": customer_data["customer_tenure"].mean(),
+                                "Transaction Freq": customer_data[
+                                    "transaction_frequency"
+                                ].mean(),
+                            }
+                        )
+
+                    self._recommendations_table(pd.DataFrame(results))
+                    st.toast(
+                        f"Generated {len(results)} recommendations in {time.time()-start_time:.2f}s",
+                        icon="✅",
+                    )
+        else:
+            st.write("No data uploaded. Please upload a CSV file.")
 
 
 if __name__ == "__main__":
-    recommender = BankingRecommendationSystem()
+    # Set API key directly here (consider using environment variables in production)
+    recommender = BankingRecommendationSystem(
+        openai_api_key=st.secrets["secrets"]["OPENAI_API_KEY"]
+    )
     ui = BankingUI(recommender)
     ui.show_main_interface()
