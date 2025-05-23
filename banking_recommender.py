@@ -1,9 +1,8 @@
 import pandas as pd
-
-# from datetime import datetime, timedelta
+import os
+import streamlit as st
 from sklearn.metrics.pairwise import cosine_similarity
 from openai import OpenAI
-import streamlit as st
 
 BANKING_PRODUCTS = [
     {
@@ -61,6 +60,11 @@ BANKING_PRODUCTS = [
 
 class BankingRecommendationSystem:
     def __init__(self, openai_api_key=None):
+        if openai_api_key is None:
+            # Try environment variable first, then Streamlit secrets
+            openai_api_key = os.environ.get("OPENAI_API_KEY")
+            if not openai_api_key and hasattr(st, "secrets") and "OPENAI_API_KEY" in st.secrets:
+                openai_api_key = st.secrets["OPENAI_API_KEY"]
         self.transaction_data = None
         self.customer_product_matrix = None
         self.openai_client = OpenAI(api_key=openai_api_key) if openai_api_key else None
@@ -76,7 +80,6 @@ class BankingRecommendationSystem:
         else:
             st.write("No data uploaded. Please upload a CSV file.")
 
-    # ... (keep other methods the same as previous implementation)
     def _preprocess_data(self):
         self.customer_product_matrix = self.transaction_data.pivot_table(
             index="customer_ID",
