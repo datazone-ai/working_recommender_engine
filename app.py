@@ -176,7 +176,7 @@ class BankingUI:
 if __name__ == "__main__":
     # Set API key directly here (consider using environment variables in production)
     recommender = BankingRecommendationSystem(
-        openai_api_key=st.secrets["secrets"]["OPENAI_API_KEY"]
+        openai_api_key=os.environ.get("OPENAI_API_KEY") # for local dev using - openai_api = st.secrets["secrets"]["OPENAI_API_KEY"]
     )
     ui = BankingUI(recommender)
     ui.show_main_interface()
