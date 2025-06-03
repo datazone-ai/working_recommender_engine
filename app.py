@@ -1,3 +1,7 @@
+import pandas as pd
+import time
+from banking_recommender import BankingRecommendationSystem
+
 import streamlit as st
 
 # Set up Streamlit page configuration
@@ -7,10 +11,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-import pandas as pd
-import time
-from banking_recommender import BankingRecommendationSystem
 
 
 class BankingUI:
