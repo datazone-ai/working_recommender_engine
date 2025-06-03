@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import streamlit as st
 from sklearn.metrics.pairwise import cosine_similarity
-from openai import OpenAI
+from openai import AzureOpenAI
 
 BANKING_PRODUCTS = [
     {
@@ -59,15 +59,31 @@ BANKING_PRODUCTS = [
 
 
 class BankingRecommendationSystem:
-    def __init__(self, openai_api_key=None):
-        if openai_api_key is None:
+    def __init__(self, azureopenai_api_key=None, api_version=None):
+        if azureopenai_api_key is None:
             # Try environment variable first, then Streamlit secrets
-            openai_api_key = os.environ.get("OPENAI_API_KEY")
-            if not openai_api_key and hasattr(st, "secrets") and "OPENAI_API_KEY" in st.secrets:
-                openai_api_key = st.secrets["OPENAI_API_KEY"]
+            azureopenai_api_key = os.environ.get("AZUREOPENAI_API_KEY")
+            if (
+                not azureopenai_api_key
+                and hasattr(st, "secrets")
+                and "AZUREOPENAI_API_KEY" in st.secrets
+            ):
+                azureopenai_api_key = st.secrets["AZUREOPENAI_API_KEY"]
+        if api_version is None:
+            api_version = os.environ.get("AZURE_OPENAI_API_KEY")
+            if (
+                not api_version
+                and hasattr(st, "secrets")
+                and "AZURE_OPENAI_API_KEY" in st.secrets
+            ):
+                api_version = st.secrets["AZURE_OPENAI_API_KEY"]
         self.transaction_data = None
         self.customer_product_matrix = None
-        self.openai_client = OpenAI(api_key=openai_api_key) if openai_api_key else None
+        self.openai_client = (
+            AzureOpenAI(api_key=azureopenai_api_key, api_version=api_version)
+            if azureopenai_api_key and api_version
+            else None
+        )
 
     def load_data(self, uploaded_file=None):
         """Load and preprocess transaction data"""
@@ -156,14 +172,29 @@ class BankingRecommendationSystem:
             # Fallback to all products if no transaction data
             return [product["name"] for product in BANKING_PRODUCTS][:top_n]
 
-    def set_openai_key(self, api_key):
-        if api_key:
-            self.openai_client = OpenAI(api_key=api_key)
+    def get_azure_openai_client(self):
+        """Initialize and return the Azure OpenAI API client."""
+        api_key = os.environ.get("AZURE_OPENAI_API_KEY") or st.secrets.get("AZURE_OPENAI_API_KEY")
+        azure_endpoint = os.environ.get("ENDPOINT_URL") or st.secrets.get("ENDPOINT_URL")
+        deployment_name = os.environ.get("DEPLOYMENT_NAME") or st.secrets.get("DEPLOYMENT_NAME")
+        api_version = os.environ.get("AZURE_OPENAI_API_VERSION") or st.secrets.get("AZURE_OPENAI_API_VERSION")
+        if not api_key or not azure_endpoint or not deployment_name:
+            st.error(
+                "Azure OpenAI configuration missing. Please set your API key, endpoint, and deployment name."
+            )
+            return None
+        return AzureOpenAI(
+            api_key=api_key,
+            api_version=api_version,
+            azure_endpoint=azure_endpoint,
+            azure_deployment=deployment_name,
+        )
 
     def generate_message(self, customer_data, recommended_products):
-        """Generate personalized message with proper error handling"""
-        if not self.openai_client:
-            return "Enable AI messaging by setting API key"
+        """Generate personalized message with proper error handling using Azure OpenAI client from get_azure_openai_client."""
+        openai_client = self.get_azure_openai_client()
+        if not openai_client:
+            return "Enable AI messaging by setting API key and Azure OpenAI config"
 
         try:
             prompt = f"""Generate a banking recommendation message for:
@@ -173,7 +204,7 @@ class BankingRecommendationSystem:
             Recommend: {', '.join(recommended_products)}
             """
 
-            response = self.openai_client.chat.completions.create(
+            response = openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
