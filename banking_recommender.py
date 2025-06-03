@@ -59,31 +59,10 @@ BANKING_PRODUCTS = [
 
 
 class BankingRecommendationSystem:
-    def __init__(self, azureopenai_api_key=None, api_version=None):
-        if azureopenai_api_key is None:
-            # Try environment variable first, then Streamlit secrets
-            azureopenai_api_key = os.environ.get("AZUREOPENAI_API_KEY")
-            if (
-                not azureopenai_api_key
-                and hasattr(st, "secrets")
-                and "AZUREOPENAI_API_KEY" in st.secrets
-            ):
-                azureopenai_api_key = st.secrets["AZUREOPENAI_API_KEY"]
-        if api_version is None:
-            api_version = os.environ.get("AZURE_OPENAI_API_KEY")
-            if (
-                not api_version
-                and hasattr(st, "secrets")
-                and "AZURE_OPENAI_API_KEY" in st.secrets
-            ):
-                api_version = st.secrets["AZURE_OPENAI_API_KEY"]
+    def __init__(self):
         self.transaction_data = None
         self.customer_product_matrix = None
-        self.openai_client = (
-            AzureOpenAI(api_key=azureopenai_api_key, api_version=api_version)
-            if azureopenai_api_key and api_version
-            else None
-        )
+        self.openai_client = None
 
     def load_data(self, uploaded_file=None):
         """Load and preprocess transaction data"""
