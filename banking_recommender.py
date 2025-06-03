@@ -172,20 +172,29 @@ class BankingRecommendationSystem:
             # Fallback to all products if no transaction data
             return [product["name"] for product in BANKING_PRODUCTS][:top_n]
 
-    def set_openai_key(self, api_key, api_version=None):
-        if api_key:
-            if (
-                api_version is None
-                and hasattr(st, "secrets")
-                and "AZURE_OPENAI_API_KEY" in st.secrets
-            ):
-                api_version = st.secrets["AZURE_OPENAI_API_KEY"]
-            self.openai_client = AzureOpenAI(api_key=api_key, api_version=api_version)
+    def get_azure_openai_client(self):
+        """Initialize and return the Azure OpenAI API client."""
+        api_key = os.environ.get("AZURE_OPENAI_API_KEY") or st.secrets.get("AZURE_OPENAI_API_KEY")
+        azure_endpoint = os.environ.get("ENDPOINT_URL") or st.secrets.get("ENDPOINT_URL")
+        deployment_name = os.environ.get("DEPLOYMENT_NAME") or st.secrets.get("DEPLOYMENT_NAME")
+        api_version = os.environ.get("AZURE_OPENAI_API_VERSION") or st.secrets.get("AZURE_OPENAI_API_VERSION")
+        if not api_key or not azure_endpoint or not deployment_name:
+            st.error(
+                "Azure OpenAI configuration missing. Please set your API key, endpoint, and deployment name."
+            )
+            return None
+        return AzureOpenAI(
+            api_key=api_key,
+            api_version=api_version,
+            azure_endpoint=azure_endpoint,
+            azure_deployment=deployment_name,
+        )
 
     def generate_message(self, customer_data, recommended_products):
-        """Generate personalized message with proper error handling"""
-        if not self.openai_client:
-            return "Enable AI messaging by setting API key"
+        """Generate personalized message with proper error handling using Azure OpenAI client from get_azure_openai_client."""
+        openai_client = self.get_azure_openai_client()
+        if not openai_client:
+            return "Enable AI messaging by setting API key and Azure OpenAI config"
 
         try:
             prompt = f"""Generate a banking recommendation message for:
@@ -195,7 +204,7 @@ class BankingRecommendationSystem:
             Recommend: {', '.join(recommended_products)}
             """
 
-            response = self.openai_client.chat.completions.create(
+            response = openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,

@@ -174,9 +174,8 @@ class BankingUI:
 
 
 if __name__ == "__main__":
-    # Set API key directly here (consider using environment variables in production)
-    recommender = BankingRecommendationSystem(
-        azureopenai_api_key=st.secrets["AZURE_OPENAI_API_KEY"]
-    )
+    # Use the get_azure_openai_client method for consistent Azure OpenAI client initialization
+    recommender = BankingRecommendationSystem()
+    recommender.openai_client = recommender.get_azure_openai_client()
     ui = BankingUI(recommender)
     ui.show_main_interface()
