@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import streamlit as st
 from sklearn.metrics.pairwise import cosine_similarity
-from openai import OpenAI
+from openai import AzureOpenAI
 
 BANKING_PRODUCTS = [
     {
@@ -59,15 +59,31 @@ BANKING_PRODUCTS = [
 
 
 class BankingRecommendationSystem:
-    def __init__(self, openai_api_key=None):
-        if openai_api_key is None:
+    def __init__(self, azureopenai_api_key=None, api_version=None):
+        if azureopenai_api_key is None:
             # Try environment variable first, then Streamlit secrets
-            openai_api_key = os.environ.get("OPENAI_API_KEY")
-            if not openai_api_key and hasattr(st, "secrets") and "OPENAI_API_KEY" in st.secrets:
-                openai_api_key = st.secrets["OPENAI_API_KEY"]
+            azureopenai_api_key = os.environ.get("AZUREOPENAI_API_KEY")
+            if (
+                not azureopenai_api_key
+                and hasattr(st, "secrets")
+                and "AZUREOPENAI_API_KEY" in st.secrets
+            ):
+                azureopenai_api_key = st.secrets["AZUREOPENAI_API_KEY"]
+        if api_version is None:
+            api_version = os.environ.get("AZURE_OPENAI_API_KEY")
+            if (
+                not api_version
+                and hasattr(st, "secrets")
+                and "AZURE_OPENAI_API_KEY" in st.secrets
+            ):
+                api_version = st.secrets["AZURE_OPENAI_API_KEY"]
         self.transaction_data = None
         self.customer_product_matrix = None
-        self.openai_client = OpenAI(api_key=openai_api_key) if openai_api_key else None
+        self.openai_client = (
+            AzureOpenAI(api_key=azureopenai_api_key, api_version=api_version)
+            if azureopenai_api_key and api_version
+            else None
+        )
 
     def load_data(self, uploaded_file=None):
         """Load and preprocess transaction data"""
@@ -156,9 +172,15 @@ class BankingRecommendationSystem:
             # Fallback to all products if no transaction data
             return [product["name"] for product in BANKING_PRODUCTS][:top_n]
 
-    def set_openai_key(self, api_key):
+    def set_openai_key(self, api_key, api_version=None):
         if api_key:
-            self.openai_client = OpenAI(api_key=api_key)
+            if (
+                api_version is None
+                and hasattr(st, "secrets")
+                and "AZURE_OPENAI_API_KEY" in st.secrets
+            ):
+                api_version = st.secrets["AZURE_OPENAI_API_KEY"]
+            self.openai_client = AzureOpenAI(api_key=api_key, api_version=api_version)
 
     def generate_message(self, customer_data, recommended_products):
         """Generate personalized message with proper error handling"""
