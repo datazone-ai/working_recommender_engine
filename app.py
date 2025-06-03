@@ -3,19 +3,18 @@ import pandas as pd
 import time
 from banking_recommender import BankingRecommendationSystem
 
+# Set up Streamlit page configuration
+st.set_page_config(
+    page_title="BankAI Recommendations",
+    page_icon="🏦",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
 
 class BankingUI:
     def __init__(self, recommender):
         self.recommender = recommender
-        self._setup_ui()
-
-    def _setup_ui(self):
-        st.set_page_config(
-            page_title="BankAI Recommendations",
-            page_icon="🏦",
-            layout="wide",
-            initial_sidebar_state="expanded",
-        )
 
     def _customer_profile_card(self, customer_data):
         """Display customer profile with formatted datetime"""
