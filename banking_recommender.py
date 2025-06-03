@@ -1,8 +1,8 @@
 import pandas as pd
-import os
 import streamlit as st
 from sklearn.metrics.pairwise import cosine_similarity
 from openai import AzureOpenAI
+import os
 
 BANKING_PRODUCTS = [
     {
@@ -152,14 +152,26 @@ class BankingRecommendationSystem:
             return [product["name"] for product in BANKING_PRODUCTS][:top_n]
 
     def get_azure_openai_client(self):
-        """Initialize and return the Azure OpenAI API client."""
-        api_key = os.environ.get("AZURE_OPENAI_API_KEY") or st.secrets.get("AZURE_OPENAI_API_KEY")
-        azure_endpoint = os.environ.get("ENDPOINT_URL") or st.secrets.get("ENDPOINT_URL")
-        deployment_name = os.environ.get("DEPLOYMENT_NAME") or st.secrets.get("DEPLOYMENT_NAME")
-        api_version = os.environ.get("AZURE_OPENAI_API_VERSION") or st.secrets.get("AZURE_OPENAI_API_VERSION")
+        """Initialize and return the Azure OpenAI API client using st.secrets (local/Streamlit) or os.environ (Azure deployment)."""
+
+        # Try st.secrets first, then fallback to os.environ
+        api_key = st.secrets.get("AZURE_OPENAI_API_KEY") or os.environ.get(
+            "AZURE_OPENAI_API_KEY"
+        )
+        azure_endpoint = st.secrets.get("ENDPOINT_URL") or os.environ.get(
+            "ENDPOINT_URL"
+        )
+        deployment_name = st.secrets.get("DEPLOYMENT_NAME") or os.environ.get(
+            "DEPLOYMENT_NAME"
+        )
+        api_version = (
+            st.secrets.get("AZURE_OPENAI_API_VERSION")
+            or os.environ.get("AZURE_OPENAI_API_VERSION")
+            or "2024-02-15-preview"
+        )
         if not api_key or not azure_endpoint or not deployment_name:
             st.error(
-                "Azure OpenAI configuration missing. Please set your API key, endpoint, and deployment name."
+                "Azure OpenAI configuration missing. Please set your API key, endpoint, and deployment name in .streamlit/secrets.toml or as environment variables."
             )
             return None
         return AzureOpenAI(
