@@ -12,6 +12,7 @@ build/
 develop-eggs/
 dist/
 downloads/
+.local.settings.json
 .streamlit/
 eggs/
 .eggs/

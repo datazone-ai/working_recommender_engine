@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import time
 
-# import os
+import os
 from banking_recommender import BankingRecommendationSystem
 
 
